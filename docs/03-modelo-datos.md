@@ -81,6 +81,7 @@ model Booking {
   status        BookingStatus @default(CONFIRMED)
   notes         String?
   cancelToken   String   @unique @default(cuid())
+  reminderSentAt DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
