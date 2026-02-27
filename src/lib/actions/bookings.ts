@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { calcularSlotsDisponibles } from "@/lib/scheduling/availability";
 import { enviarEmailCancelacion, enviarEmailConfirmacion } from "@/lib/email";
@@ -96,7 +97,7 @@ export async function crearReserva(
           notes,
         },
       });
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     await enviarEmailConfirmacion(booking, eventType);
     cancelToken = booking.cancelToken;
@@ -106,6 +107,11 @@ export async function crearReserva(
     }
     if (error instanceof Error && error.message === "SLOT_INVALIDO") {
       return { error: "Ese horario ya no está disponible." };
+    }
+    // P2034: conflicto de serialización detectado por Postgres entre dos
+    // reservas concurrentes para el mismo horario.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
+      return { error: "Ese horario ya fue reservado. Elegí otro." };
     }
     throw error;
   }
