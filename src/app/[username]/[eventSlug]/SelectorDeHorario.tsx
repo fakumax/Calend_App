@@ -107,6 +107,7 @@ export function SelectorDeHorario({
   const [fecha, setFecha] = useState<string | null>(null);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [horaSeleccionada, setHoraSeleccionada] = useState<Slot | null>(null);
   const [slotElegido, setSlotElegido] = useState<Slot | null>(null);
 
   const tzNavegador = useSyncExternalStore(
@@ -349,6 +350,7 @@ export function SelectorDeHorario({
                     onClick={() => {
                       setMesOffset((m) => Math.max(0, m - 1));
                       setFecha(null);
+                      setHoraSeleccionada(null);
                     }}
                     disabled={mesOffset === 0}
                     className="size-[34px] rounded-[10px] bg-tinta/5 text-[15px] hover:bg-tinta/10 disabled:opacity-30"
@@ -360,6 +362,7 @@ export function SelectorDeHorario({
                     onClick={() => {
                       setMesOffset((m) => Math.min(MES_OFFSET_MAX, m + 1));
                       setFecha(null);
+                      setHoraSeleccionada(null);
                     }}
                     disabled={mesOffset === MES_OFFSET_MAX}
                     className="size-[34px] rounded-[10px] bg-tinta/5 text-[15px] hover:bg-tinta/10 disabled:opacity-30"
@@ -386,7 +389,10 @@ export function SelectorDeHorario({
                       key={`${d.iso}-${i}`}
                       type="button"
                       disabled={!d.disponible}
-                      onClick={() => setFecha(d.iso)}
+                      onClick={() => {
+                        setFecha(d.iso);
+                        setHoraSeleccionada(null);
+                      }}
                       className={`aspect-square rounded-xl text-[15px] transition-transform ${
                         seleccionado
                           ? "bg-acento font-bold text-white"
@@ -419,22 +425,39 @@ export function SelectorDeHorario({
                   {slots.length} horarios · {etiquetaZona(zona)}
                 </div>
                 {slots.length > 0 ? (
-                  <div
-                    className={`mt-4 grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-2 pr-0.5 ${
-                      slots.length > 10 ? "max-h-[380px] overflow-x-hidden overflow-y-auto" : ""
-                    }`}
-                  >
-                    {slots.map((slot) => (
-                      <button
-                        key={slot.start}
-                        type="button"
-                        onClick={() => setSlotElegido(slot)}
-                        className="rounded-[10px] border-[1.5px] border-acento bg-white py-[11px] text-sm font-bold text-acento transition-colors hover:bg-acento/[.07] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento/35"
-                      >
-                        {hora(slot.start)}
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <div
+                      className={`mt-4 grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-2 pr-0.5 ${
+                        slots.length > 10 ? "max-h-[380px] overflow-x-hidden overflow-y-auto" : ""
+                      }`}
+                    >
+                      {slots.map((slot) => {
+                        const seleccionado = horaSeleccionada?.start === slot.start;
+                        return (
+                          <button
+                            key={slot.start}
+                            type="button"
+                            onClick={() => setHoraSeleccionada(slot)}
+                            className={`rounded-[10px] border-[1.5px] border-acento py-[11px] text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-acento/35 ${
+                              seleccionado
+                                ? "bg-acento text-white"
+                                : "bg-white text-acento hover:bg-acento/[.07]"
+                            }`}
+                          >
+                            {hora(slot.start)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!horaSeleccionada}
+                      onClick={() => setSlotElegido(horaSeleccionada)}
+                      className="mt-4 w-full rounded-xl bg-acento p-3 text-sm font-bold text-white transition-[transform,box-shadow] hover:-translate-y-px hover:shadow-[0_12px_24px_-12px_rgba(14,107,74,.6)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                    >
+                      Continuar →
+                    </button>
+                  </>
                 ) : (
                   <p className="mt-4 text-sm text-tinta/50">
                     No quedan horarios este día. Probá con otro.
