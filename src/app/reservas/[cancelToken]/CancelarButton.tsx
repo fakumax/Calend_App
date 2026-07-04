@@ -10,7 +10,7 @@ export function CancelarButton({ cancelToken }: { cancelToken: string }) {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col items-center gap-2">
       <button
         type="button"
         disabled={pending}
@@ -21,11 +21,11 @@ export function CancelarButton({ cancelToken }: { cancelToken: string }) {
             else router.refresh();
           })
         }
-        className="w-fit rounded border border-red-300 px-4 py-2 text-sm text-red-600 disabled:opacity-50 dark:border-red-800"
+        className="w-fit rounded-xl border-[1.5px] border-red-200 px-[18px] py-[11px] text-sm font-semibold text-red-700 hover:border-red-400 disabled:opacity-50"
       >
         {pending ? "Cancelando..." : "Cancelar reserva"}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-700">{error}</p>}
     </div>
   );
 }

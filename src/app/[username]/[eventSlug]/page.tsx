@@ -1,6 +1,17 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { SelectorDeHorario } from "./SelectorDeHorario";
+import { iniciales } from "@/lib/formato";
+import { SelectorDeHorario, HORIZONTE_DIAS } from "./SelectorDeHorario";
+
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+function rangoHorizonte() {
+  const ahora = Date.now();
+  return {
+    desde: new Date(ahora - DIA_MS),
+    hasta: new Date(ahora + (HORIZONTE_DIAS + 1) * DIA_MS),
+  };
+}
 
 export default async function ReservarPage({
   params,
@@ -17,17 +28,31 @@ export default async function ReservarPage({
   });
   if (!eventType || !eventType.isActive) notFound();
 
-  return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-16">
-      <div>
-        <h1 className="text-2xl font-semibold">{eventType.title}</h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          {eventType.durationMinutes} min · con {host.name}
-        </p>
-        {eventType.description && <p className="mt-2 text-sm">{eventType.description}</p>}
-      </div>
+  // Para pintar el calendario: días de semana con reglas + excepciones del
+  // horizonte de reserva. La validación real del slot sigue en la API/action.
+  const { desde, hasta } = rangoHorizonte();
+  const reglas = await db.availability.findMany({ where: { userId: host.id } });
+  const overrides = await db.availabilityOverride.findMany({
+    where: { userId: host.id, date: { gte: desde, lte: hasta } },
+  });
 
-      <SelectorDeHorario eventTypeId={eventType.id} username={username} eventSlug={eventSlug} />
-    </div>
+  return (
+    <SelectorDeHorario
+      eventTypeId={eventType.id}
+      username={username}
+      eventSlug={eventSlug}
+      hostName={host.name}
+      hostIniciales={iniciales(host.name)}
+      titulo={eventType.title}
+      descripcion={eventType.description}
+      duracionMinutos={eventType.durationMinutes}
+      ubicacion={eventType.location}
+      diasConDisponibilidad={Array.from(new Set(reglas.map((r) => r.dayOfWeek)))}
+      overrides={overrides.map((o) => ({
+        date: o.date.toISOString().slice(0, 10),
+        // Coincide con el motor: un override habilita el día solo si trae ventana.
+        disponible: o.isAvailable && Boolean(o.startTime) && Boolean(o.endTime),
+      }))}
+    />
   );
 }
